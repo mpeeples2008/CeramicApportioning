@@ -1,4 +1,5 @@
 # CeramicApportioning
+
 This is an R implementation of the procedure outlined by John M. Roberts, Jr. et al. (2012) "A method for chronologically apportioning of ceramic assemblages" published in the Journal of Archaeological Science
 
 Roberts, John M., Jr., Barbara J. Mills, Jeffery J. Clark, W. Randall Haas, Jr., Deborah L. Huntley, and Meaghan A. Trowbridge
