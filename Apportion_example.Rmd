@@ -26,7 +26,7 @@ The following chunk of code includes the apportioning script in it's entirety wi
 
 This GitHub page includes a version of the script called "Apportion.R" that can be run directly from source. The code below is identical to that source file.
 
-```{r apportion_script}
+```{r apportion_script, message=F, warning=F}
 
 require(msm)
 
@@ -149,10 +149,13 @@ apportion <-
     # round numbers to 3 digits combine vectors and output
     mat <- round(mat, 3)
     unapportioned <- round(unapportioned, 3)
-    mat <- cbind(Site, Type, unapportioned, mat)
+    mat <- cbind(Site, Type, t0, t1, unapportioned, mat)
     mat <- as.data.frame(mat)
+    colnames(mat)[1:4] <- c('Site','Type','Start_Date','End_Date')
+    mat[,3:ncol(mat)] <- do.call(cbind,lapply(mat[,3:ncol(mat)],as.numeric))
     return(mat)
 } # end function
+
 ```
 
 ## Running the Function
@@ -188,3 +191,42 @@ results4 <- apportion(Site = ceramics$Site, Type = ceramics$Type, ct = ceramics$
 
 DT::datatable(results4)
 ```
+
+## Iterative Proportional Fitting
+
+Another analysis presented within the Roberts et al. 2012 paper allows the matrix of apportioned values to be fit to some externally defined population curve for a site. This is based on the assumption that, in general, we would expect more ceramic deposition during periods of greater population. The way this is achieved is using iterative proportional fitting. Essentially, this method adjusts the row and column totals so that the rows are the row sums of counts during the period of interest and the column totals are the population value multiplied by the total ceramic count. This new table finds the best fit cross-classification that preservers the odds ratios of the table while also respecting the desired totals. In some cases, this procedure will fail as it will generate impossible values by, for example, adding counts for a particular type outside of it's production range. 
+
+The following chunk of code adapts a procedure for iterative proportional fitting that expects input that is exactly the output of the apportioning procedure used above. In this function, an IPF fit is generated and then evaluated to determine whether it produces any problems and then outputs either the new IPF fit dataset or the original dataset and a warning indicating that IPF produced impossible results. This procedure needs to be run one site at a time so rows from the ouptut from above need to be selected by site. Let's look at the example. We are calling the function from source here as it is quite large. We will use the "results" object above which represents apportioned data at 25 year intervals from 1200-1450.
+
+In order to run this procedure you need to supply a vector of population values for each of the apportioned periods. This can be based on anything from a model to absolute date counts or anything. In this case, we are using the simple population modeling assumptions used in the Roberts et al. 2012 article. 
+
+After displaying both datatables I then produce a figure showing the proportion of ceramics assigned to each interval in the original apportioned data and then the IPF fit data.
+
+```{r, warning=F}
+source('ipf.R')
+
+orig <- results[which(results3$Site=="Swingle's Sample"),]
+DT::datatable(orig)
+pop <- c(0,0,0,0,13,19,23,23,21,0) 
+
+res <- ipf_apportion(apportion_output=orig, pop=pop)
+DT::datatable(res)
+
+plot(seq(1200,1425,by=25),colSums(orig[,6:ncol(orig)])/sum(orig[,6:ncol(orig)]),type='l',col='red', xlab='Date',ylab='Proportion of Ceramic Count', ylim=c(0,0.25), xlim=c(1200,1500))
+points(seq(1200,1425,by=25),colSums(res[,6:ncol(res)])/sum(res[,6:ncol(res)]),type='l',col='blue')
+legend('topleft',col=c('red','blue'),legend=c('Apportioned','IPF'), lty=c(1,1), lwd=c(1,1))
+
+```
+
+Now let's look at an example where the IPF procedure fails. Note that in this case I am intentionally generating this error by supplying an  incorrect population curve for this site that indicates no population for intervals where this site was occupied.
+
+```{r, warning=F}
+orig <- results[which(results3$Site=="Leaverton"),]
+DT::datatable(orig)
+pop <- c(0,0,0,0,13,19,23,23,21,0) 
+
+res <- ipf_apportion(apportion_output=orig, pop=pop)
+DT::datatable(res)
+
+```
+

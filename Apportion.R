@@ -1,3 +1,5 @@
+require(msm)
+
 apportion <-
   function(Site,      # vector of site names with one entry for every site/type/count
            Type,      # vector of type names with one entry for every site/type/count
@@ -117,7 +119,10 @@ apportion <-
     # round numbers to 3 digits combine vectors and output
     mat <- round(mat, 3)
     unapportioned <- round(unapportioned, 3)
-    mat <- cbind(Site, Type, unapportioned, mat)
+    mat <- cbind(Site, Type, t0, t1, unapportioned, mat)
     mat <- as.data.frame(mat)
+    colnames(mat)[1:4] <- c('Site','Type','Start_Date','End_Date')
+    mat[,3:ncol(mat)] <- do.call(cbind,lapply(mat[,3:ncol(mat)],as.numeric))
     return(mat)
 } # end function
+
